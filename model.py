@@ -14,6 +14,8 @@ DATABASE_FILENAME = "mekong.db"
 conn = None
 cur = None
 
+# parsing weird json format functions
+
 def parse_date(date_str):
     if date_str:
         hyphens = date_str.count("-")
@@ -28,12 +30,16 @@ def parse_date(date_str):
         return datetime.date(year, month, day)
 
 def parse_int(int_str):
-    if int_str:
+    if int_str and type(int_str) == str:
         return int(int_str)
+    return int_str
 
 def parse_price(price_str):
-    if price_str:
+    if price_str and type(price_str) == str:
         return float(price_str[1:])
+    return price_str
+
+# class definitions
 
 class Book(object):
     def __init__(self, values):
@@ -60,25 +66,20 @@ class Book(object):
         self.mediumimageheight = parse_int(values["mediumimageheight"])
         self.largeimagewidth = parse_int(values["largeimagewidth"])
         self.largeimageheight = parse_int(values["largeimageheight"])
-        self.authors = values["authors"]
 
-    def put(self):
-        """Puts book into database."""
-        cur.execute("""
-            INSERT INTO books VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-            )
-            """,
-            (self.isbn, self.binding, self.catalog, self.ean, self.edition, self.numpages,
-            self.publication_date, self.productdescription, self.publisher,
-            self.releasedate, self.salesrank, self.price, self.title, self.year,
-            self.smallimageurl, self.mediumimageurl, self.largeimageurl,
-            self.smallimagewidth, self.smallimageheight,
-            self.mediumimagewidth, self.mediumimageheight,
-            self.largeimagewidth, self.largeimageheight))
+        # fetch authors from db
+        self.authors = []
+        for author in cur.execute("SELECT name FROM authors WHERE isbn = ?", (self.isbn,)):
+            self.authors.append(author["name"])
 
-        for author in self.authors:
-            cur.execute("INSERT INTO authors VALUES (?, ?)", (author, self.isbn))
+# querying functions
+
+def book_by_isbn(isbn):
+    values = cur.execute("SELECT * FROM books WHERE isbn = ?", (isbn,))
+    if values.rowcount:
+        return Book(values.fetchone())
+
+# database functions
 
 def open_database(check_exists=True):
     """Opens connection to database."""
@@ -89,6 +90,7 @@ def open_database(check_exists=True):
         create_database()
 
     conn = sqlite3.connect(DATABASE_FILENAME)
+    conn.row_factory = sqlite3.Row # return row names
     cur = conn.cursor()
 
 def save_database():
@@ -147,7 +149,45 @@ def create_database():
     for values in data.values():
         # convert to defaultdict, because some stupid books don't have all the keys
         values = defaultdict(lambda: None, values) # return None if key doesn't exist
-        book = Book(values)
-        book.put()
+
+        # add to database
+        cur.execute("""
+            INSERT INTO books VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            )
+            """,
+            (values["isbn"],
+            values["binding"],
+            values["catalog"],
+            values["ean"],
+            values["edition"],
+            parse_int(values["numpages"]),
+            parse_date(values["publication_date"]),
+            values["productdescription"],
+            values["publisher"],
+            parse_date(values["releasedate"]),
+            parse_int(values["salesrank"]),
+            parse_price(values["price"]),
+            values["title"],
+            parse_int(values["year"]),
+            values["smallimageurl"],
+            values["mediumimageurl"],
+            values["largeimageurl"],
+            values["smallimagewidth"],
+            values["smallimageheight"],
+            values["mediumimagewidth"],
+            values["mediumimageheight"],
+            values["largeimagewidth"],
+            values["largeimageheight"]))
+
+        for author in values["authors"]:
+            cur.execute("INSERT INTO authors VALUES (?, ?)", (author, values["isbn"]))
 
     save_database()
+
+if __name__ == "__main__":
+    open_database()
+    book = book_by_isbn("0393315703")
+    print book.title
+    print ", ".join(book.authors)
+    close_database()
