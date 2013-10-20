@@ -1,0 +1,25 @@
+body {
+    padding: 30px;
+}
+
+.navbar {
+    margin-bottom: 30px;
+}
+
+#home_left {
+    float: left;
+}
+
+#home_right {
+    float: right;
+    background: url("../img/logo512.png") no-repeat;
+    background-size: 256px 256px;
+    width: 256px;
+    height: 256px;
+    margin-top: 50px;
+    opacity: 0.35;
+}
+
+#home_clear {
+    clear: both;
+}
