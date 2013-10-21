@@ -49,13 +49,13 @@
                         <{ else }>
 
                         <li>
-                            <a href="#">
+                            <a data-toggle="modal" href="#registerModal">
                                 <span class="glyphicon glyphicon-check"></span>
                                 &nbsp;Register
                             </a>
                         </li>
                         <li>
-                            <a data-toggle="modal" href="#signinModal">
+                            <a data-toggle="modal" href="#signInModal">
                                 <span class="glyphicon glyphicon-log-in"></span>
                                 &nbsp;Sign in
                             </a>
@@ -73,6 +73,7 @@
             <{ end }>
 
             <{ include signin.html }>
+            <{ include register.html }>
 
             <div class="footer">
                 <p>COMP2041 13s2 assignment 2, by George Caley.</p>
@@ -81,5 +82,6 @@
 
         <script src="js/jquery.js"></script>
         <script src="js/bootstrap.min.js"></script>
+        <script src="js/mekong.js"></script>
     </body>
 </html>

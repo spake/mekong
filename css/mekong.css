@@ -39,18 +39,24 @@ body {
     display: inline-block;
 }
 
-/* modal signin dialog */
+/* modal signin & register dialogs */
 
 .modal-dialog-center {
-    margin-top: 25%;
+    padding-top: 15%;
 }
 
-.modal-signin-title {
+.modal-signin-title, .modal-register-title {
     text-align: center;
     font-size: 30pt;
 }
 
 .form-signin {
+    max-width: 330px;
+    padding: 15px;
+    margin: 0 auto;
+}
+
+.form-register {
     max-width: 330px;
     padding: 15px;
     margin: 0 auto;
@@ -63,4 +69,8 @@ body {
     padding: 10px;
     margin-bottom: 10px;
     box-sizing: border-box;
+}
+
+.form-signin-bottom, .form-register-bottom {
+    text-align: center;
 }

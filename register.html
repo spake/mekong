@@ -1,0 +1,24 @@
+<div class="modal fade" id="registerModal" tabindex="-1" role="dialog">
+	<div class="modal-dialog modal-dialog-center">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal">&times;</button>
+				<h2 class="modal-title modal-register-title">hi!&nbsp;<div class="tiny-logo"></div></h2>
+			</div>
+			<div class="modal-body">
+
+                <form class="form-register" method="POST">
+					<input type="text" class="form-control" name="username" placeholder="Username" autofocus>
+					<input type="password" class="form-control" name="password" placeholder="Password">
+					<input type="hidden" name="action" value="register">
+					<button type="submit" class="btn btn-lg btn-primary btn-block">Register</button>
+                </form>
+
+                <div class="form-register-bottom">
+                    <a href="#" onclick="openSignInModal(); return false">Already have an account?</a>
+                </div>
+
+			</div>
+		</div>
+	</div>
+</div>
