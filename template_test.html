@@ -1,0 +1,29 @@
+<html>
+    <body>
+        <{ if test == 0 }>
+            <h1>test is 0</h1>
+        <{ elif test == 1 }>
+            <h1>test is 1</h1>
+        <{ elif test == 2 }>
+            <h1>test is the number of binary digits</h1>
+        <{ else }>
+            <h1>test is not a binary number!!!</h1>
+        <{ end }>
+
+        <{ for i in things }>
+            <h1>thing <% i %></h1>
+        <{ end }>
+
+        <table>
+        <{ for row in matrix }>
+            <tr>
+            <{ for cell in row }>
+                <td><% cell %></td>
+            <{ end }>
+            </tr>
+        <{ end }>
+        </table>
+
+        <p><i>done</i></p>
+    </body>
+</html>

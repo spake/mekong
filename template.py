@@ -2,15 +2,15 @@
 # yes, this is totally necessary.
 
 # basic layout for engine:
-# << for {var} in {expression} >>
-# << end for >>
+# <{ for {var} in {expression} }>
+# <{ end }>
 
-# << if {expression} >>
-# << elif {expression} >>
-# << else >>
-# << end if >>
+# <{ if {expression} }>
+# <{ elif {expression} }>
+# <{ else }>
+# <{ end }>
 
-# << include {static_file} >>
+# <{ include {static_file} }>
 
 # <% {expression} %>
 
@@ -18,10 +18,18 @@
 
 # and yes, it'll be written as a parser. hooroo.
 
-COMMAND_OPEN = "<<"
-COMMAND_CLOSE = ">>"
+import re
+
+COMMAND_OPEN = "<{"
+COMMAND_CLOSE = "}>"
 EXPRESSION_OPEN = "<%"
 EXPRESSION_CLOSE = "%>"
+
+FOR_RE = re.compile(r"^\s+for\s+([^\s]+)\s+in\s+(.*?)\s+$")
+IF_RE = re.compile(r"^\s+if\s+(.*?)\s+$")
+CONDITION_RE = re.compile(r"^\s+(elif\s+(.*?)|else)\s+$")
+INCLUDE_RE = re.compile(r"^\s+include\s+(.*?)\s+$")
+END_RE = re.compile(r"^\s+end\s+$")
 
 class TemplatingError(Exception):
     pass
@@ -62,7 +70,7 @@ class ForNode(Node):
         self.iterable = iterable
         self.contents = None # CollectionNode with the children of the loop
 
-    def set_contents(contents):
+    def set_contents(self, contents):
         self.contents = contents
 
     def render(self, values):
@@ -82,7 +90,7 @@ class IfNode(Node):
         self.conditions = []
         self.contents = []
 
-    def add_condition(condition, condition_type, contents):
+    def add_condition(self, condition, condition_type, contents):
         # always evaluate an else
         if condition_type == "else":
             condition = "True"
@@ -107,7 +115,7 @@ class ExpressionNode(Node):
         self.expression = expression
 
     def render(self, values):
-        return eval(self.expression, values)
+        return str(eval(self.expression, values))
 
 class IncludeNode(Node):
     """Contains another file that gets recursively processed by the templating engine."""
@@ -119,14 +127,15 @@ class Parser(object):
         """Initialise a parser with the given HTML document (with templating markup)."""
         # tokenise document
         # split on command/expression symbols
-        self.tokens = re.split(r"(%s|%s|%s|%s)" % (COMMAND_OPEN, COMMAND_CLOSE, EXPRESSION_OPEN, EXPRESSION_CLOSE), doc)
+        symbols = tuple(map(re.escape, (COMMAND_OPEN, COMMAND_CLOSE, EXPRESSION_OPEN, EXPRESSION_CLOSE)))
+        self.tokens = re.split(r"(%s|%s|%s|%s)" % symbols, doc)
         self.upto = 0
 
     def parse(self):
-        return self.parse_collection()
+        return self.parse_collection(root=True)
 
     def curr(self):
-        if self.upto < len(self.tokens);
+        if self.upto < len(self.tokens):
             return self.tokens[self.upto]
 
     def next(self):
@@ -139,58 +148,51 @@ class Parser(object):
     def advance(self):
         self.upto += 1
 
-    def parse_collection(self, root=False):
+    def parse_collection(self, root=False, parsing_if=False):
         collection_node = CollectionNode()
 
         while not self.finished():
             token = self.curr()
             if token == COMMAND_OPEN:
+                # check whether it's an end command
+                if END_RE.match(self.next()):
+                    # if we're parsing the root node, this is not good
+                    # otherwise just break
+                    if root:
+                        raise TemplatingError("Not expecting end command")
+                    else:
+                        break
+                elif CONDITION_RE.match(self.next()):
+                    if parsing_if:
+                        break
+                    else:
+                        raise TemplatingError("Not expecting condition")
+
                 self.advance() # consume opening thing
-                node = parse_command() # parse command
+                node = self.parse_command() # parse command
 
-                # assert closing thing
-                if self.curr() != COMMAND_CLOSE:
-                    raise TemplatingError("Excepting %s" % COMMAND_CLOSE)
-
-                self.advance() # consume closing thing
             elif token == EXPRESSION_OPEN:
                 self.advance() # consume opening thing
-                node = parse_expression() # parse expression
+                node = self.parse_expression() # parse expression
 
-                # assert closing thing
-                if self.curr() != EXPRESSION_CLOSE:
-                    raise TemplatingError("Expecting %s" % EXPRESSION_CLOSE)
-
-                self.advance() # consume closing thing
-            elif token == COMMAND_CLOSE:
-                # if we are parsing the root node then this is a bad thing
-                # otherwise just break out of the loop
-                if root:
-                    raise TemplatingError("Not expecting %s" % token)
-                else:
-                    break
-            elif token == EXPRESSION_CLOSE:
+            elif token == COMMAND_CLOSE or token == EXPRESSION_CLOSE:
                 raise TemplatingError("Not expecting %s" % token)
             else:
-                node = parse_text() # just a regular old text node
+                node = self.parse_text() # just a regular old text node
 
             collection_node.add_child(node)
 
         return collection_node
 
-    def parse_text(self):
-        node = TextNode(self.curr())
-        self.advance() # consume text
-
     def parse_command(self):
         # we need to discern which type of command we're dealing with
-        command = self.curr().strip()
+        command = self.curr()
+        self.advance()
 
-        FOR_RE = re.compile(r"^for\s+([^\s]+)in\s+(.*)$")
-        IF_RE = re.compile(r"^if\s+(.*)$")
-        ELIF_RE = re.compile(r"^elif\s+(.*)$")
-        ELSE_RE = re.compile(r"^else\s+(.*)$")
-        INCLUDE_RE = re.compile(r"^include\s+(.*)$")
+        # consume end of command token
+        if not self.curr() == COMMAND_CLOSE:
+            raise TemplatingError("Expecting %s" % COMMAND_CLOSE)
+        self.advance()
 
         for_match = FOR_RE.match(command)
         if_match = IF_RE.match(command)
@@ -198,8 +200,84 @@ class Parser(object):
 
         if for_match:
             variable, expression = for_match.groups()
-            for_node = ForNode(variable, expression)
-            # read boyd of the loop
+            node = ForNode(variable, expression)
+
+            # read body of the loop
+            contents = self.parse_collection()
+            node.set_contents(contents)
+
+        elif if_match:
+            node = IfNode()
+
+            # read in the contents of the if
+            condition = if_match.group(1)
+            condition_type = "if"
+            contents = self.parse_collection(parsing_if=True)
+
+            node.add_condition(condition, condition_type, contents)
+
+            # read elifs and elses and such
+            while True:
+                # consume beginning symbol
+                if not self.curr() == COMMAND_OPEN:
+                    break # can't be an elif/else! something may be wrong...
+
+                match = CONDITION_RE.match(self.next())
+                if not match:
+                    break # definitely not an elif/else
+
+                # consume the opening thing and match
+                self.advance()
+                self.advance()
+                # AND consume end symbol
+                if not self.curr() == COMMAND_CLOSE:
+                    raise TemplatingError("Expecting %s" % COMMAND_CLOSE)
+                self.advance()
+
+                condition = match.group(2)
+                condition_type = match.group(1)
+                contents = self.parse_collection(parsing_if=True)
+
+                node.add_condition(condition, condition_type, contents)
+
+                if condition_type == "else":
+                    break
+
+        elif include_match:
+            pass # TODO: this
+
+        else:
+            raise TemplatingError("Invalid command '%s'" % command)
+
+        # read end command if need be
+        if if_match or for_match:
+            # consume beginning
+            if not self.curr() == COMMAND_OPEN:
+                raise TemplatingError("Expecting %s" % COMMAND_OPEN)
+            self.advance()
+            # consume middle
+            if not END_RE.match(self.curr()):
+                raise TemplatingError("Expecting end command")
+            self.advance()
+            # and finally, consume end
+            if not self.curr() == COMMAND_CLOSE:
+                raise TemplatingError("Expecting %s" % COMMAND_CLOSE)
+            self.advance()
+
+        return node
 
     def parse_expression(self):
-        pass
+        node = ExpressionNode(self.curr())
+        self.advance() # consume expression
+
+        # ensure close expression symbol is present
+        if not self.curr() == EXPRESSION_CLOSE:
+            raise TemplatingError("Expecting %s" % EXPRESSION_CLOSE)
+        self.advance()
+
+        return node
+
+    def parse_text(self):
+        node = TextNode(self.curr())
+        self.advance() # consume text
+        return node
