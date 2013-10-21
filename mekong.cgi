@@ -6,13 +6,20 @@ import cgitb
 # enable fancy verbose errors
 cgitb.enable()
 
+import json
+import hashlib
 import os
 import re
 import sqlite3
 
 import template
 
+# here are some constants
 DATABASE_FILENAME = "mekong.db"
+
+# functions and stuff
+def hash(s):
+	return hashlib.sha256(s).hexdigest()
 
 # create db if it doesn't already exist
 db_exists = os.path.exists(DATABASE_FILENAME)
@@ -117,11 +124,30 @@ if not db_exists:
 # content time, yay!
 form = cgi.FieldStorage()
 
+# template formatting values
+values = {
+    "page": form.getfirst("page", "home").lower(),
+    "user": None
+}
+
+# check query stuff
+# is someone trying to sign in?
+if "username" in form and "password" in form:
+	username = form["username"].value
+	password = form["password"].value
+	password_hash = hash(password)
+
+	# check database for matching username and password
+	#raise Exception((username, password_hash))
+	result = cur.execute("SELECT COUNT(*) FROM users WHERE username = ? AND password_hash = ?", (username, password_hash)).fetchone()
+
+	if result:
+		values["user"] = 1
+	else:
+		values["user"] = 0
+
 # print headers
 print "Content-Type: text/html"
 print ""
 
-values = {
-    "page": form.getfirst("page", "home").lower()
-}
 print template.format_file("index.html", values)

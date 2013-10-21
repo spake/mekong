@@ -30,7 +30,37 @@ body {
     margin-left: auto;
 }
 
+.tiny-logo {
+    background: url("../img/logo64.png") no-repeat;
+    background-size: 32px 32px;
+    width: 32px;
+    height: 32px;
+    opacity: 0.45;
+    display: inline-block;
+}
 
-.icon-navbar {
-    padding-right: 5px;
+/* modal signin dialog */
+
+.modal-dialog-center {
+    margin-top: 25%;
+}
+
+.modal-signin-title {
+    text-align: center;
+    font-size: 30pt;
+}
+
+.form-signin {
+    max-width: 330px;
+    padding: 15px;
+    margin: 0 auto;
+}
+
+.form-signin .form-control {
+    position: relative;
+    font-size: 16px;
+    height: auto;
+    padding: 10px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
 }

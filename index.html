@@ -28,9 +28,40 @@
                         <li><a href="#">Other shit</a></li>
                         <li><a href="#">Page III</a></li>
                     </ul>
+
                     <ul class="nav navbar-nav navbar-right">
-                        <li><a href="#"><span class="icon-navbar glyphicon glyphicon-check"></span>Register</a></li>
-                        <li><a data-toggle="modal" href="#loginModal"><span class="icon-navbar glyphicon glyphicon-lock"></span>Sign in</a></li>
+                        <{ if user }>
+
+                        <li>
+                            <a href="#">
+                                <span class="glyphicon glyphicon-shopping-cart"></span>
+                                &nbsp;Cart&nbsp;
+                                <span class="badge">42</span></a>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
+                                <span class="glyphicon glyphicon-log-out"></span>
+                                &nbsp;Sign out
+                            </a>
+                        </li>
+
+                        <{ else }>
+
+                        <li>
+                            <a href="#">
+                                <span class="glyphicon glyphicon-check"></span>
+                                &nbsp;Register
+                            </a>
+                        </li>
+                        <li>
+                            <a data-toggle="modal" href="#signinModal">
+                                <span class="glyphicon glyphicon-log-in"></span>
+                                &nbsp;Sign in
+                            </a>
+                        </li>
+
+                        <{ end }>
                     </ul>
                 </div>
             </div>
@@ -40,6 +71,8 @@
             <{ else }>
             <{ include 404.html }>
             <{ end }>
+
+            <{ include signin.html }>
 
             <div class="footer">
                 <p>COMP2041 13s2 assignment 2, by George Caley.</p>
