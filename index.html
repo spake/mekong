@@ -35,22 +35,11 @@
                 </div>
             </div>
 
-            <div class="jumbotron">
-                <div id="home_left">
-                    <h1>mekong</h1>
-                    <p>welcome to mekong</p>
-                    <p>this <b>is</b> mekong</p>
-                    <p>you can do anything with mekong</p>
-                    <p>anything at all</p>
-                    <p>the only limit is yourself</p>
-
-                    <p>
-                        <a class="btn btn-lg btn-primary" href="#">Begin</a>
-                    </p>
-                </div>
-                <div id="home_right"></div>
-                <div id="home_clear"></div>
-            </div>
+            <{ if page == "home" }>
+            <{ include home.html }>
+            <{ else }>
+            <{ include 404.html }>
+            <{ end }>
 
             <div class="footer">
                 <p>COMP2041 13s2 assignment 2, by George Caley.</p>

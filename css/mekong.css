@@ -10,19 +10,26 @@ body {
     float: left;
 }
 
-#home_right {
-    float: right;
+.home-logo {
     background: url("../img/logo512.png") no-repeat;
     background-size: 256px 256px;
     width: 256px;
     height: 256px;
     margin-top: 50px;
     opacity: 0.35;
+    margin-left: auto;
 }
 
-#home_clear {
-    clear: both;
+.sad-logo {
+    background: url("../img/sadbook512.png") no-repeat;
+    background-size: 256px 256px;
+    width: 256px;
+    height: 256px;
+    margin-top: 50px;
+    opacity: 0.35;
+    margin-left: auto;
 }
+
 
 .icon-navbar {
     padding-right: 5px;
