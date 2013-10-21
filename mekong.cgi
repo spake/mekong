@@ -3,6 +3,8 @@
 import cgi
 import cgitb
 
+import template
+
 # enable fancy verbose errors
 cgitb.enable()
 
@@ -12,14 +14,7 @@ print ""
 
 # content time, yay!
 
-print """
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>hi</title>
-    </head>
-    <body>
-        <b>TODO</b>: assignment
-    </body>
-</html>
-"""
+values = {
+    "messages": ["hello, world", "templates are not a waste of time", "if you think otherwise you are poop"]
+}
+print template.format_file("index.html", values)

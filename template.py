@@ -119,7 +119,17 @@ class ExpressionNode(Node):
 
 class IncludeNode(Node):
     """Contains another file that gets recursively processed by the templating engine."""
-    pass
+    def __init__(self, filename):
+        self.filename = filename
+
+    def render(self, values):
+        # open file, get contents
+        data = open(self.filename, "r").read()
+
+        # create another parser for this file
+        subparser = Parser(data)
+        tree = subparser.parse()
+        return tree.render(values)
 
 class Parser(object):
     """Creates a parse tree from a file and processes its templating commands."""
@@ -244,7 +254,8 @@ class Parser(object):
                     break
 
         elif include_match:
-            pass # TODO: this
+            filename = include_match.group(1)
+            node = IncludeNode(filename)
 
         else:
             raise TemplatingError("Invalid command '%s'" % command)
@@ -281,3 +292,9 @@ class Parser(object):
         node = TextNode(self.curr())
         self.advance() # consume text
         return node
+
+def format_file(filename, values):
+    data = open(filename, "r").read()
+    parser = Parser(data)
+    tree = parser.parse()
+    return tree.render(values)

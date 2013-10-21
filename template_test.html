@@ -10,8 +10,12 @@
             <h1>test is not a binary number!!!</h1>
         <{ end }>
 
-        <{ for i in things }>
-            <h1>thing <% i %></h1>
+        <{ if len(things) }>
+            <{ for i in things }>
+                <h1>thing <% i %></h1>
+            <{ end }>
+        <{ else }>
+            <h1>there are no things :(</h1>
         <{ end }>
 
         <table>
@@ -23,6 +27,10 @@
             </tr>
         <{ end }>
         </table>
+
+        <{ include template_test_include.html }>
+        <{ include template_test_include.html }>
+        <{ include template_test_include.html }>
 
         <p><i>done</i></p>
     </body>
