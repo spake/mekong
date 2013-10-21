@@ -71,6 +71,18 @@ body {
     box-sizing: border-box;
 }
 
+.form-register .form-control {
+    position: relative;
+    font-size: 12px;
+    height: auto;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+}
+
+#registerAlert {
+    display: none;
+}
+
 .form-signin-bottom, .form-register-bottom {
     text-align: center;
 }
