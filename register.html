@@ -9,38 +9,40 @@
 
                 <form class="form-register" id="registerForm" method="POST">
 
+                    <div class="alert alert-danger" id="registerAlert">
+                    </div>
+
                     Pick a username<br>
-                    <input type="text" class="form-control" name="username" autofocus>
+                    <input type="text" class="form-control" name="username" value="<% register_data["username"] %>" autofocus>
 
                     Pick a <a href="http://xkcd.com/936/" target="_blank">password</a><br>
-                    <input type="password" class="form-control" name="password">
+                    <input type="password" class="form-control" name="password" value="<% register_data["password"] %>">
 
                     Confirm the password<br>
-                    <input type="password" class="form-control" name="password2">
+                    <input type="password" class="form-control" name="password2" value="<% register_data["password2"] %>">
 
                     Your real name<br>
-                    <input type="text" class="form-control" name="name">
-
-                    Your email address<br>
-                    <input type="email" class="form-control" name="email">
+                    <input type="text" class="form-control" name="name" value="<% register_data["name"] %>">
 
                     Your street address<br>
-                    <input type="text" class="form-control" name="street">
+                    <input type="text" class="form-control" name="street" value="<% register_data["street"] %>">
 
                     City<br>
-                    <input type="text" class="form-control" name="city">
+                    <input type="text" class="form-control" name="city" value="<% register_data["city"] %>">
 
                     State<br>
-                    <input type="text" class="form-control" name="state">
+                    <input type="text" class="form-control" name="state" value="<% register_data["state"] %>">
 
                     Postcode<br>
-                    <input type="text" class="form-control" name="postcode">
+                    <input type="text" class="form-control" name="postcode" value="<% register_data["postcode"] %>">
+
+                    Your email address<br>
+                    <input type="email" class="form-control" name="email" value="<% register_data["email"] %>">
+
 
                     <input type="hidden" name="action" value="register">
 
-                    <div class="alert alert-danger" id="registerAlert">
-                    </div>
-					<button type="submit" onclick="return register()" class="btn btn-lg btn-primary btn-block">Register</button>
+					<button type="submit" class="btn btn-lg btn-primary btn-block">Register</button>
                 </form>
 
                 <div class="form-register-bottom">
@@ -51,3 +53,11 @@
 		</div>
 	</div>
 </div>
+
+<{ if register_fail }>
+<script>
+    $(document).ready(function() {
+        displayRegisterFailed("<% register_error %>");
+    });
+</script>
+<{ end }>

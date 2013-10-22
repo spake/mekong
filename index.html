@@ -34,13 +34,18 @@
 
                         <li>
                             <a href="#">
+                                Hi, <% user["username"] %>!
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#">
                                 <span class="glyphicon glyphicon-shopping-cart"></span>
                                 &nbsp;Cart&nbsp;
                                 <span class="badge">42</span></a>
                             </a>
                         </li>
                         <li>
-                            <a href="#">
+                            <a href="#" onclick="$('#signOutForm').submit()">
                                 <span class="glyphicon glyphicon-log-out"></span>
                                 &nbsp;Sign out
                             </a>
@@ -66,11 +71,31 @@
                 </div>
             </div>
 
+            <form id="signOutForm" method="POST">
+                <input type="hidden" name="action" value="signout">
+            </form>
+
+            <{ if register_success }>
+            <div class="alert alert-success">
+                Your registration was successful. Welcome to mekong!
+            </div>
+            <{ end }>
+
+            <{ if signout_success }>
+            <div class="alert alert-success">
+                You've been successfully signed out of mekong. Hope to see you again soon!
+            </div>
+            <{ end }>
+
             <{ if page == "home" }>
             <{ include home.html }>
             <{ else }>
             <{ include 404.html }>
             <{ end }>
+
+            <script src="js/jquery.js"></script>
+            <script src="js/bootstrap.min.js"></script>
+            <script src="js/mekong.js"></script>
 
             <{ include signin.html }>
             <{ include register.html }>
@@ -79,9 +104,5 @@
                 <p>COMP2041 13s2 assignment 2, by George Caley.</p>
             </div>
         </div>
-
-        <script src="js/jquery.js"></script>
-        <script src="js/bootstrap.min.js"></script>
-        <script src="js/mekong.js"></script>
     </body>
 </html>

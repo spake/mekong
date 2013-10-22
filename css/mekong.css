@@ -79,7 +79,7 @@ body {
     box-sizing: border-box;
 }
 
-#registerAlert {
+#signInAlert, #registerAlert {
     display: none;
 }
 

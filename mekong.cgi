@@ -6,9 +6,13 @@ import cgitb
 # enable fancy verbose errors
 cgitb.enable()
 
+from collections import defaultdict
+from Cookie import SimpleCookie
+import datetime
 import json
 import hashlib
 import os
+import random
 import re
 import sqlite3
 import time
@@ -17,10 +21,11 @@ import template
 
 # here are some constants
 DATABASE_FILENAME = "mekong.db"
+MIN_PASSWORD_LENGTH = 6
 
 # functions and stuff
 def hash(s):
-	return hashlib.sha256(s).hexdigest()
+    return hashlib.sha256(s).hexdigest()
 
 def create_session(user):
     # do this similarly to PHP sessions, the code for which is at:
@@ -43,6 +48,8 @@ def create_session(user):
     # now insert it into the db
     cur.execute("INSERT INTO sessions VALUES (?, ?)", (sid, username))
 
+    conn.commit()
+
     return sid
 
 def session_to_username(sid):
@@ -57,9 +64,38 @@ def delete_session(sid):
 
     cur.execute("DELETE FROM sessions WHERE sid = ?", (sid,))
 
+def get_user(username):
+    # get all their info
+    user = cur.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    return user
+
+def parse_date(date_str):
+    if date_str:
+        hyphens = date_str.count("-")
+        month, day = 1, 1 # default values
+
+        if hyphens == 2:
+            year, month, day = map(int, date_str.split("-"))
+        elif hyphens == 1:
+            year, month = map(int, date_str.split("-"))
+        else:
+            year = int(date_str)
+        return datetime.date(year, month, day)
+
+def parse_int(int_str):
+    if int_str and type(int_str) == str:
+        return int(int_str)
+    return int_str
+
+def parse_price(price_str):
+    if price_str and type(price_str) == str:
+        return float(price_str[1:])
+    return price_str
+
 # create db if it doesn't already exist
 db_exists = os.path.exists(DATABASE_FILENAME)
 conn = sqlite3.connect(DATABASE_FILENAME)
+conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 
 if not db_exists:
@@ -97,25 +133,26 @@ if not db_exists:
             name text,
             isbn text
         )
-    	""")
+        """)
 
     cur.execute("""
-    	CREATE TABLE users (
-    		username text primary key,
-    		password_hash text,
-    		name text,
-    		street text,
-    		city text,
-    		state text,
-    		postcode text,
-    		email text
-		)
-    	""")
+        CREATE TABLE users (
+            username text primary key,
+            password_hash text,
+            name text,
+            street text,
+            city text,
+            state text,
+            postcode text,
+            email text
+        )
+        """)
 
     cur.execute("""
         CREATE TABLE sessions (
-            id text primary key,
+            sid text primary key,
             username text
+        )
         """)
 
     # parse books.json
@@ -166,49 +203,139 @@ if not db_exists:
 # content time, yay!
 form = cgi.FieldStorage()
 
+# template formatting values
+values = {
+    "page": form.getfirst("page", "home").lower(),
+    "signin_fail": False,
+    "register_fail": False
+}
+
 # some vars
 user = None
 sid = None
 
+# check cookies
+cookies_string = os.environ["HTTP_COOKIE"] if "HTTP_COOKIE" in os.environ else ""
+cookies = SimpleCookie(cookies_string)
+
+if "sid" in cookies:
+    sid = cookies["sid"].value
+
 # check query stuff
-# is someone trying to sign in?
-if "username" in form and "password" in form:
-	username = form["username"].value
-	password = form["password"].value
-	password_hash = hash(password)
+action = form.getvalue("action")
 
-	# check database for matching username and password
-	result = cur.execute("SELECT COUNT(*) FROM users WHERE username = ? AND password_hash = ?", (username, password_hash)).fetchone()
+# check basic actions (register/signin)
+if action == "signin":
+    username = form["username"].value
+    password = form["password"].value
+    password_hash = hash(password)
 
-	if result:
+    # check database for matching username and password
+    result = cur.execute("SELECT username FROM users WHERE username = ? AND password_hash = ?", (username, password_hash)).fetchone()
+
+    if result:
         # it's valid!
-
-        # get all their info
-        user = cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+        user = get_user(username)
 
         # create a session for them
         sid = create_session(user)
-	else:
-		# lol they fail
-        # TODO: post a fail message
-        pass
+    else:
+        # lol they fail
+        page = form["page"].value # homepage
+        values["signin_fail"] = True
+elif action == "register":
+    username = form.getvalue("username")
+    password = form.getvalue("password")
+    password2 = form.getvalue("password2")
+
+    name = form.getvalue("name")
+    street = form.getvalue("street")
+    city = form.getvalue("city")
+    state = form.getvalue("state")
+    postcode = form.getvalue("postcode")
+    email = form.getvalue("email")
+
+    error = ""
+
+    # check stuff
+    # is the username taken?
+    if not username:
+        error = "Please enter a username."
+    elif not re.match(r"^[A-Za-z0-9_\.]+$", username):
+        error = "Make sure that your username only contains alphanumeric characters, _ and ."
+    elif get_user(username):
+        error = "That username is already taken, try another!"
+    elif password != password2:
+        error = "Make sure both passwords you entered match."
+    elif not password or len(password) < MIN_PASSWORD_LENGTH:
+        error = "Please choose a password that's at least %d characters long!" % MIN_PASSWORD_LENGTH
+    elif not name or not name.strip():
+        error = "Please enter your name."
+    elif not street or not street.strip():
+        error = "Please enter your street."
+    elif not city or not city.strip():
+        error = "Please enter your city."
+    elif not state or not state.strip():
+        error = "Please choose your state."
+    elif not postcode or not re.match(r"^[0-9]{4}$", postcode):
+        error = "Please enter a valid postcode (4 digits)."
+    elif not email or not re.match(r"^[a-z0-9_-]+(\.[a-z0-9_-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*$", email):
+        error = "Please enter a valid email address."
+    else:
+        # oh shit no errors, sweet
+        # register the user
+        password_hash = hash(password)
+        cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (username, password_hash, name.strip(), street.strip(),
+                 city.strip(), state.strip(), postcode, email))
+
+        # sign them in
+        user = get_user(username)
+        sid = create_session(user)
+
+    if error:
+        # set error stuff
+        values["register_fail"] = True
+        values["register_error"] = error
+
+        values["register_data"] = {
+            "username": username,
+            "password": password,
+            "password2": password2,
+            "name": name,
+            "street": street,
+            "city": city,
+            "state": state,
+            "postcode": postcode,
+            "email": email
+        }
+elif action == "signout":
+    # remove session
+    delete_session(sid)
+    user = None
+
+    values["signout_success"] = True
+
+# are they logged in? i.e. is sid set
+if sid:
+    # put sid into cookies
+    cookies["sid"] = sid
+
+    username = session_to_username(sid)
+    if username:
+        # yay
+        user = get_user(username)
+
+# assign some last minute values
+values["user"] = user
 
 # print headers
 print "Content-Type: text/html"
 
 # cookies
-if sid:
-    print "Set-Cookie: sid=%s" % sid
+print cookies.output()
 
 # end headers
 print ""
 
-# template formatting values
-values = {
-    "page": form.getfirst("page", "home").lower(),
-    "user": user
-}
-
 print template.format_file("index.html", values)
-
-cgi.print_environ()

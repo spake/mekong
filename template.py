@@ -101,7 +101,11 @@ class IfNode(Node):
     def render(self, values):
         # step through each condition and evaluate one by one until we get one that's true
         for condition, contents in zip(self.conditions, self.contents):
-            result = eval(condition, values)
+            try:
+                result = eval(condition, values)
+            except:
+                result = False
+
             if result:
                 # found one that's true, yay
                 return contents.render(values)
@@ -115,7 +119,16 @@ class ExpressionNode(Node):
         self.expression = expression
 
     def render(self, values):
-        return str(eval(self.expression, values))
+        # try evaluating the expression
+        # but if something goes wrong (i.e. key doesn't exist or something), fail silently
+        try:
+            result = eval(self.expression, values)
+            if result:
+                return result
+        except:
+            pass
+
+        return ""
 
 class IncludeNode(Node):
     """Contains another file that gets recursively processed by the templating engine."""
