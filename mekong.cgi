@@ -11,6 +11,7 @@ import hashlib
 import os
 import re
 import sqlite3
+import time
 
 import template
 
@@ -20,6 +21,41 @@ DATABASE_FILENAME = "mekong.db"
 # functions and stuff
 def hash(s):
 	return hashlib.sha256(s).hexdigest()
+
+def create_session(user):
+    # do this similarly to PHP sessions, the code for which is at:
+    # https://github.com/php/php-src/blob/master/ext/session/session.c
+
+    # get their username and password hash
+    username = user["username"]
+    passhash = user["password_hash"]
+    # get their IP
+    ip = os.environ["REMOTE_ADDR"]
+    # stupid time string
+    timestr = str(time.time())
+    # also a random number because why not
+    # even though it's probably seeded by the time so kind of useless
+    randomstr = str(random.random())
+
+    s = username + passhash + ip + timestr + randomstr
+    sid = hashlib.sha256(s).hexdigest()
+
+    # now insert it into the db
+    cur.execute("INSERT INTO sessions VALUES (?, ?)", (sid, username))
+
+    return sid
+
+def session_to_username(sid):
+    # get the username from a session id
+
+    result = cur.execute("SELECT username FROM sessions WHERE sid = ?", (sid,)).fetchone()
+    if result:
+        return result["username"]
+
+def delete_session(sid):
+    # remove the session
+
+    cur.execute("DELETE FROM sessions WHERE sid = ?", (sid,))
 
 # create db if it doesn't already exist
 db_exists = os.path.exists(DATABASE_FILENAME)
@@ -65,7 +101,7 @@ if not db_exists:
 
     cur.execute("""
     	CREATE TABLE users (
-    		username text,
+    		username text primary key,
     		password_hash text,
     		name text,
     		street text,
@@ -75,6 +111,12 @@ if not db_exists:
     		email text
 		)
     	""")
+
+    cur.execute("""
+        CREATE TABLE sessions (
+            id text primary key,
+            username text
+        """)
 
     # parse books.json
     f = open("books.json")
@@ -124,11 +166,9 @@ if not db_exists:
 # content time, yay!
 form = cgi.FieldStorage()
 
-# template formatting values
-values = {
-    "page": form.getfirst("page", "home").lower(),
-    "user": None
-}
+# some vars
+user = None
+sid = None
 
 # check query stuff
 # is someone trying to sign in?
@@ -138,16 +178,37 @@ if "username" in form and "password" in form:
 	password_hash = hash(password)
 
 	# check database for matching username and password
-	#raise Exception((username, password_hash))
 	result = cur.execute("SELECT COUNT(*) FROM users WHERE username = ? AND password_hash = ?", (username, password_hash)).fetchone()
 
 	if result:
-		values["user"] = 1
+        # it's valid!
+
+        # get all their info
+        user = cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+
+        # create a session for them
+        sid = create_session(user)
 	else:
-		values["user"] = 0
+		# lol they fail
+        # TODO: post a fail message
+        pass
 
 # print headers
 print "Content-Type: text/html"
+
+# cookies
+if sid:
+    print "Set-Cookie: sid=%s" % sid
+
+# end headers
 print ""
 
+# template formatting values
+values = {
+    "page": form.getfirst("page", "home").lower(),
+    "user": user
+}
+
 print template.format_file("index.html", values)
+
+cgi.print_environ()
