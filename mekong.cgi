@@ -27,6 +27,7 @@ MIN_PASSWORD_LENGTH = 6
 def hash(s):
     return hashlib.sha256(s).hexdigest()
 
+# session functions
 def create_session(user):
     # do this similarly to PHP sessions, the code for which is at:
     # https://github.com/php/php-src/blob/master/ext/session/session.c
@@ -64,11 +65,16 @@ def delete_session(sid):
 
     cur.execute("DELETE FROM sessions WHERE sid = ?", (sid,))
 
+    conn.commit()
+
+# user functions
 def get_user(username):
     # get all their info
     user = cur.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     return user
 
+# email functions
+# book parsing functions
 def parse_date(date_str):
     if date_str:
         hyphens = date_str.count("-")
@@ -312,18 +318,20 @@ elif action == "register":
 elif action == "signout":
     # remove session
     delete_session(sid)
+    sid = None
     user = None
 
     values["signout_success"] = True
 
 # are they logged in? i.e. is sid set
 if sid:
-    # put sid into cookies
-    cookies["sid"] = sid
-
     username = session_to_username(sid)
     if username:
-        # yay
+        # yay, it's a valid session + user!
+
+        # put sid into cookies
+        cookies["sid"] = sid
+
         user = get_user(username)
 
 # assign some last minute values
