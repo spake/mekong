@@ -210,8 +210,10 @@ if not db_exists:
 form = cgi.FieldStorage()
 
 # template formatting values
+page = form.getfirst("page", "home").lower()
+
 values = {
-    "page": form.getfirst("page", "home").lower(),
+    "page": page,
     "signin_fail": False,
     "register_fail": False
 }
@@ -328,11 +330,23 @@ if sid:
     username = session_to_username(sid)
     if username:
         # yay, it's a valid session + user!
-
-        # put sid into cookies
-        cookies["sid"] = sid
-
         user = get_user(username)
+    else:
+        sid = None
+
+# check page selection
+if page == "search":
+    # get query from post
+    query = form.getfirst("query", "")
+    values["query"] = query
+
+    # now fetch results from db
+    #results = [{} for i in xrange(len(query))]
+    results = cur.execute("SELECT * FROM books LIMIT 4").fetchall()
+    values["results"] = results
+
+# put sid into cookies
+cookies["sid"] = sid if sid else ""
 
 # assign some last minute values
 values["user"] = user

@@ -86,3 +86,9 @@ body {
 .form-signin-bottom, .form-register-bottom {
     text-align: center;
 }
+
+/* search stuff */
+
+.thumbnail {
+    margin-bottom: 10px;
+}
