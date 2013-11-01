@@ -339,7 +339,18 @@ if page == "search":
     values["query"] = query
 
     # now fetch results from db
-    results = cur.execute("SELECT * FROM books ORDER BY random() LIMIT 4").fetchall()
+    # thanks http://stackoverflow.com/questions/3017417/how-do-i-assign-different-weights-to-columns-in-sql-server-full-text-search
+    results = cur.execute("""
+    SELECT * FROM (
+        SELECT books.*, 3 AS rank FROM books NATURAL JOIN authors WHERE authors.name LIKE "%" || ? || "%"
+        UNION
+        SELECT *, 2 AS rank FROM books WHERE title LIKE "%" || ? || "%"
+        UNION
+        SELECT *, 1 AS rank FROM books WHERE productdescription LIKE "%" || ? || "%"
+    ) results
+    GROUP BY isbn
+    ORDER BY rank DESC, -salesrank DESC
+    """, (query,)*3).fetchall()
     # remember to also fetch authors
     books = []
     for result in results:
