@@ -340,17 +340,49 @@ if page == "search":
 
     # now fetch results from db
     # thanks http://stackoverflow.com/questions/3017417/how-do-i-assign-different-weights-to-columns-in-sql-server-full-text-search
-    results = cur.execute("""
-    SELECT * FROM (
-        SELECT books.*, 3 AS rank FROM books NATURAL JOIN authors WHERE authors.name LIKE "%" || ? || "%"
-        UNION
-        SELECT *, 2 AS rank FROM books WHERE title LIKE "%" || ? || "%"
-        UNION
-        SELECT *, 1 AS rank FROM books WHERE productdescription LIKE "%" || ? || "%"
-    ) results
+    # and http://stackoverflow.com/questions/4075026/need-help-with-sql-for-ranking-search-results
+
+    clean_query = re.sub(r"[%_]", "", query)
+
+    sql_count = """
+    SELECT COUNT(*)
+    FROM books
+    NATURAL JOIN authors
+    WHERE authors.name LIKE "%" || ? || "%"
+    OR title LIKE "%" || ? || "%"
+    OR productdescription LIKE "%" || ? || "%"
+    GROUP BY isbn
+    """
+
+    total = len(cur.execute(sql_count, (clean_query,)*3).fetchall())
+
+    results_per_page = 20
+    page = 0
+    try:
+        page = int(form.getfirst("p", 0))
+    except:
+        pass
+
+    values["num_pages"] = total / results_per_page
+
+    sql_real = """
+    SELECT *,
+    (
+        (CASE WHEN authors.name LIKE "%" || ? || "%" THEN 3 ELSE 0 END) +
+        (CASE WHEN title LIKE "%" || ? || "%" THEN 2 ELSE 0 END) +
+        (CASE WHEN productdescription LIKE "%" || ? || "%" THEN 1 ELSE 0 END)
+    ) as rank
+    FROM books
+    NATURAL JOIN authors
+    WHERE authors.name LIKE "%" || ? || "%"
+    OR title LIKE "%" || ? || "%"
+    OR productdescription LIKE "%" || ? || "%"
     GROUP BY isbn
     ORDER BY rank DESC, -salesrank DESC
-    """, (query,)*3).fetchall()
+    LIMIT ? OFFSET ?
+    """
+
+    results = cur.execute(sql_real, (clean_query,)*6 + (results_per_page, page*results_per_page)).fetchall()
     # remember to also fetch authors
     books = []
     for result in results:
@@ -361,6 +393,7 @@ if page == "search":
         book["authors"] = authors
         books.append(book)
 
+    values["total"] = total
     values["results"] = books
 
 # put sid into cookies

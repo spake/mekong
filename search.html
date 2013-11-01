@@ -1,7 +1,7 @@
 <div class="panel panel-default">
     <div class="panel-body">
         <h3 class="search-header">
-            <% len(results) if results else "No" %> results found for <i><% query %></i>
+            <% total if total else "No" %> results found for <i><% query %></i>
         </h3>
         <{ if results }>
         <ul class="search-list media-list">
@@ -28,6 +28,14 @@
                 </div>
             </li>
             <{ end }>
+        </ul>
+
+        <ul class="pagination">
+            <li><a href="#">&laquo;</a></li>
+            <{ for i in xrange(num_pages) }>
+            <li><a href="?page=search&query=<% __import__('urllib').quote_plus(query) %>&p=<% i %>"><% i %></a></li>
+            <{ end }>
+            <li><a href="#">&raquo;</a></li>
         </ul>
         <{ end }>
     </div>
