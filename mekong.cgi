@@ -94,9 +94,7 @@ def parse_int(int_str):
     return int_str
 
 def parse_price(price_str):
-    if price_str and type(price_str) == str:
-        return float(price_str[1:])
-    return price_str
+    return float(price_str[1:])
 
 # create db if it doesn't already exist
 db_exists = os.path.exists(DATABASE_FILENAME)
@@ -341,9 +339,18 @@ if page == "search":
     values["query"] = query
 
     # now fetch results from db
-    #results = [{} for i in xrange(len(query))]
-    results = cur.execute("SELECT * FROM books LIMIT 4").fetchall()
-    values["results"] = results
+    results = cur.execute("SELECT * FROM books ORDER BY random() LIMIT 4").fetchall()
+    # remember to also fetch authors
+    books = []
+    for result in results:
+        book = dict(result)
+        authors = []
+        for author in cur.execute("SELECT name FROM authors WHERE isbn = ?", (book["isbn"],)).fetchall():
+            authors.append(author["name"])
+        book["authors"] = authors
+        books.append(book)
+
+    values["results"] = books
 
 # put sid into cookies
 cookies["sid"] = sid if sid else ""

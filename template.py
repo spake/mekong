@@ -122,7 +122,7 @@ class ExpressionNode(Node):
         # try evaluating the expression
         # but if something goes wrong (i.e. key doesn't exist or something), fail silently
         try:
-            result = eval(self.expression, values)
+            result = str(eval(self.expression, values))
             if result:
                 return result
         except:

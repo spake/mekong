@@ -89,6 +89,28 @@ body {
 
 /* search stuff */
 
-.thumbnail {
-    margin-bottom: 10px;
+.search-header {
+    margin: 0;
+}
+
+.search-list {
+    margin-top: 15px;
+}
+
+.searchresult-thumbnail {
+    max-width: 100px;
+}
+
+.searchresult-heading {
+    font-weight: bold;
+    font-size: 12pt;
+}
+
+.searchresult-paragraph {
+    margin: 0 0 5px 0;
+}
+
+.searchresult-price {
+    font-weight: bold;
+    color: #b0171f;
 }
