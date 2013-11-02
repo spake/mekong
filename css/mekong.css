@@ -118,3 +118,17 @@ body {
 .pagination {
     text-align: center;
 }
+
+/* details stuff */
+
+.details-thumbnail {
+    width: 100%;
+}
+
+.details-thumbnail-container {
+    float: left;
+}
+
+.details-description {
+    float: right;
+}

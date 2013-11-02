@@ -403,6 +403,16 @@ if page == "search":
 
     values["total"] = total
     values["results"] = books
+elif page == "details":
+    # get id from query
+    isbn = form.getfirst("isbn")
+
+    result = dict(cur.execute("SELECT * FROM books WHERE isbn = ?", (isbn,)).fetchone())
+    authors = []
+    for author in cur.execute("SELECT name FROM authors WHERE isbn = ?", (isbn,)).fetchall():
+        authors.append(author["name"])
+    result["authors"] = authors
+    values["book"] = result
 
 # put sid into cookies
 cookies["sid"] = sid if sid else ""

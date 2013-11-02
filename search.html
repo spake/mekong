@@ -11,12 +11,12 @@
         <ul class="search-list media-list">
             <{ for book in results }>
             <li class="media">
-                <a class="pull-left" href="?page=book&isbn=<% book["isbn"] %>">
-                    <img class="searchresult-thumbnail media-object"src="<% book["largeimageurl"] %>" alt="...">
+                <a class="pull-left" href="?page=details&isbn=<% book["isbn"] %>">
+                    <img class="searchresult-thumbnail media-object"src="<% book["largeimageurl"] %>" alt="">
                 </a>
                 <div class="media-body">
                     <p class="searchresult-paragraph">
-                        <a href="?page=book&isbn=<% book["isbn"] %>" class="searchresult-heading">
+                        <a href="?page=details&isbn=<% book["isbn"] %>" class="searchresult-heading">
                             <% book["title"] %>
                         </a>
                         by <% ", ".join(book["authors"]) %>

@@ -1,0 +1,15 @@
+<div class="panel panel-default">
+    <div class="panel-body">
+        <h3><% book["title"] %></h3>
+        <h4>Written by <% ", ".join(book["authors"]) %></h4>
+        <div class="row">
+            <div class="col-xs-4">
+                <img class="details-thumbnail"src="<% book["largeimageurl"] %>" alt="">
+            </div>
+            <div class="col-xs-8">
+                <% book["productdescription"] %>
+            </div>
+        </div>
+        <button class="btn btn-default" onclick="history.go(-1)">Back</button>
+    </div>
+</div>
