@@ -3,7 +3,11 @@
         <h3 class="search-header">
             <% total if total else "No" %> results found for <i><% query %></i>
         </h3>
+        <h4 class="search-header">
+            Showing results <% start %>-<% finish %>
+        </h4>
         <{ if results }>
+        <{ include search_pagination.html }>
         <ul class="search-list media-list">
             <{ for book in results }>
             <li class="media">
@@ -30,13 +34,7 @@
             <{ end }>
         </ul>
 
-        <ul class="pagination">
-            <li><a href="#">&laquo;</a></li>
-            <{ for i in xrange(num_pages) }>
-            <li><a href="?page=search&query=<% __import__('urllib').quote_plus(query) %>&p=<% i %>"><% i %></a></li>
-            <{ end }>
-            <li><a href="#">&raquo;</a></li>
-        </ul>
+        <{ include search_pagination.html }>
         <{ end }>
     </div>
 </div>

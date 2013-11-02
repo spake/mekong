@@ -114,3 +114,7 @@ body {
     font-weight: bold;
     color: #b0171f;
 }
+
+.pagination {
+    text-align: center;
+}

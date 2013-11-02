@@ -11,11 +11,13 @@ from Cookie import SimpleCookie
 import datetime
 import json
 import hashlib
+import math
 import os
 import random
 import re
 import sqlite3
 import time
+import urllib
 
 import template
 
@@ -337,6 +339,7 @@ if page == "search":
     # get query from post
     query = form.getfirst("query", "")
     values["query"] = query
+    values["quoted_query"] = urllib.quote_plus(query)
 
     # now fetch results from db
     # thanks http://stackoverflow.com/questions/3017417/how-do-i-assign-different-weights-to-columns-in-sql-server-full-text-search
@@ -356,14 +359,19 @@ if page == "search":
 
     total = len(cur.execute(sql_count, (clean_query,)*3).fetchall())
 
-    results_per_page = 20
-    page = 0
+    results_per_page = 5
+    page = 1
     try:
         page = int(form.getfirst("p", 0))
+        if page < 1:
+            page = 1
     except:
         pass
 
-    values["num_pages"] = total / results_per_page
+    values["num_pages"] = int(math.ceil(float(total) / results_per_page))
+    values["p"] = page
+    values["start"] = (page-1)*results_per_page + 1
+    values["finish"] = min((total, (page-1)*results_per_page + results_per_page))
 
     sql_real = """
     SELECT *,
@@ -382,7 +390,7 @@ if page == "search":
     LIMIT ? OFFSET ?
     """
 
-    results = cur.execute(sql_real, (clean_query,)*6 + (results_per_page, page*results_per_page)).fetchall()
+    results = cur.execute(sql_real, (clean_query,)*6 + (results_per_page, (page-1)*results_per_page)).fetchall()
     # remember to also fetch authors
     books = []
     for result in results:
