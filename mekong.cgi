@@ -359,7 +359,7 @@ if page == "search":
 
     total = len(cur.execute(sql_count, (clean_query,)*3).fetchall())
 
-    results_per_page = 5
+    results_per_page = 20
     page = 1
     try:
         page = int(form.getfirst("p", 0))

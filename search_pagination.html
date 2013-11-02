@@ -1,9 +1,11 @@
+<{ if num_pages > 1 }>
 <div style="text-align: center">
     <ul class="pagination">
         <li><a href="?page=search&query=<% quoted_query %>&p=<% max((p-1, 1)) %>">&laquo;</a></li>
-        <{ for i in xrange(max(p-4, 1), max(min(p+5, num_pages), 10)+1) }>
+        <{ for i in xrange(max(p-4, 1), max(min(p+5, num_pages), min(num_pages, 10))+1) }>
         <li><a href="?page=search&query=<% quoted_query %>&p=<% i %>"><% i %></a></li>
         <{ end }>
         <li><a href="?page=search&query=<% quoted_query %>&p=<% min((p+1, num_pages)) %>">&raquo;</a></li>
     </ul>
 </div>
+<{ end }>
