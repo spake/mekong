@@ -544,22 +544,28 @@ elif page == "cart":
                 expirystr = str(int(expirymonth)).zfill(2) + "/" + expiryyear
 
                 total = get_cart_total(username)
+                if total <= 0.0:
+                    redirect = "?page=cart" # what happened here
+                else:
 
-                lines = []
-                # get cart contents
-                results = cur.execute("SELECT * FROM cart_contents NATURAL JOIN books WHERE username = ?", (username,)).fetchall()
+                    lines = []
+                    # get cart contents
+                    results = cur.execute("SELECT * FROM cart_contents NATURAL JOIN books WHERE username = ?", (username,)).fetchall()
 
-                for result in results:
-                    lines.append("%s (ISBN: %s) &times; %d ($%.2f each)" % (result["title"], result["isbn"], result["quantity"], result["price"]))
-                description = "<br>".join(lines)
+                    for result in results:
+                        lines.append("%s (ISBN: %s) &times; %d ($%.2f each)" % (result["title"], result["isbn"], result["quantity"], result["price"]))
+                    description = "<br>".join(lines)
 
-                result = cur.execute("INSERT INTO orders (username, timestamp, cc, expiry, total, description) VALUES (?, ?, ?, ?, ?, ?)",
-                        (username, int(time.time()), creditcard, expirystr, total, description))
-                conn.commit()
+                    result = cur.execute("INSERT INTO orders (username, timestamp, cc, expiry, total, description) VALUES (?, ?, ?, ?, ?, ?)",
+                            (username, int(time.time()), creditcard, expirystr, total, description))
 
-                result_id = cur.lastrowid
+                    result_id = cur.lastrowid
+                    # also clear cart for user
+                    cur.execute("DELETE FROM cart_contents WHERE username = ?", (username,))
 
-                redirect = "?page=checkout_success&id=%d" % result_id
+                    conn.commit()
+
+                    redirect = "?page=checkout_success&id=%d" % result_id
 
             if error:
                 values["checkout_fail"] = True
@@ -628,12 +634,48 @@ elif page == "cart":
                     books.append(book)
                 values["books"] = books
 elif page == "checkout_success":
+
+    redirect = "?page=home" # redirect by default if something breaks
+
     # if it's a valid id, add description
     id = form.getfirst("id")
     if id:
-        result = cur.execute("SELECT description FROM orders WHERE order_id = ?", (id,)).fetchone()
+        result = cur.execute("SELECT description FROM orders WHERE order_id = ? AND username = ?", (id, username)).fetchone()
         if result:
             values["description"] = result["description"]
+            redirect = None
+elif page == "account":
+    if user:
+        # are we resetting password?
+        if action == "changepassword":
+            # yes we are...damn
+            oldpassword = form.getvalue("oldpassword")
+            password = form.getvalue("password")
+            password2 = form.getvalue("password2")
+
+            error = ""
+
+            # check old password matches
+            if hash(oldpassword) != user["password_hash"]:
+                error = "Please enter your current password correctly."
+            elif password != password2:
+                error = "Make sure both passwords you entered match."
+            elif not password or len(password) < MIN_PASSWORD_LENGTH:
+                error = "Please choose a password that's at least %d characters long!" % MIN_PASSWORD_LENGTH
+            else:
+                password_hash = hash(password)
+                cur.execute("UPDATE users SET password_hash = ? WHERE username = ?", (password_hash, username))
+                conn.commit()
+
+                values["changepassword_success"] = True
+
+            if error:
+                values["changepassword_fail"] = True
+                values["changepassword_error"] = error
+
+        # add past orders
+        orders = map(dict, cur.execute("SELECT * FROM orders WHERE username = ? ORDER BY timestamp DESC", (username,)).fetchall())
+        values["orders"] = orders
 
 # cart total
 if user:

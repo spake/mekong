@@ -34,8 +34,12 @@
                         <{ if user }>
 
                         <li>
-                            <a href="#">
-                                Hi, <% user["username"] %>!
+                            <a>Hi, <b><% user["username"] %></b>!</a>
+                        </li>
+                        <li>
+                        <a href="?page=account">
+                            <span class="glyphicon glyphicon-cog"></span>
+                                &nbsp;Account details
                             </a>
                         </li>
                         <li>
@@ -102,6 +106,8 @@
             <{ include cart.html }>
             <{ elif page == "checkout_success" }>
             <{ include checkout_success.html }>
+            <{ elif page == "account" }>
+            <{ include account.html }>
             <{ else }>
             <{ include 404.html }>
             <{ end }>
