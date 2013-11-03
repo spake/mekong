@@ -32,7 +32,7 @@
 <{ if signin_fail }>
 <script>
     $(document).ready(function() {
-        displaySignInFailed("Incorrect username/password :(");
+        displaySignInFailed("<% signin_error %>");
     });
 </script>
 <{ end }>

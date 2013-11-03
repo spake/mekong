@@ -15,6 +15,7 @@ import math
 import os
 import random
 import re
+import smtplib
 import sqlite3
 import time
 import urllib
@@ -76,6 +77,25 @@ def get_user(username):
     return user
 
 # email functions
+EMAIL_USERNAME = "mekong@caley.com.au"
+EMAIL_PASSWORD = "6de2789b4614f57312d8e70f27f2dea65665d2681bc4e87c0f8d9dffd0f0c415"
+
+def send_email(recipient, subject, content):
+    msg = "From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html\r\n\r\n%s" % (EMAIL_USERNAME, recipient, subject, content)
+
+    smtp = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+    smtp.login(EMAIL_USERNAME, EMAIL_PASSWORD)
+    smtp.sendmail(EMAIL_USERNAME, recipient, msg)
+    smtp.quit()
+
+def send_verification_email(user):
+    url = "http://cgi.cse.unsw.edu.au/~gric057/mekong/?verify=%s" % user["verification_token"]
+
+    msg = """Hi there %s! Click the following link to verify your brand new Mekong account:<br>
+    <a href="%s">%s</a>""" % (user["username"], url, url)
+
+    send_email(user["email"], "Mekong email verification", msg)
+
 # book parsing functions
 def parse_date(date_str):
     if date_str:
@@ -150,7 +170,9 @@ if not db_exists:
             city text,
             state text,
             postcode text,
-            email text
+            email text,
+            verified integer,
+            verification_token text
         )
         """)
 
@@ -173,7 +195,7 @@ if not db_exists:
         CREATE TABLE orders (
             order_id integer primary key autoincrement,
             username text,
-            time ???,
+            timestamp integer,
             cc text,
             expiry text
         )
@@ -247,6 +269,7 @@ values = {
 # some vars
 user = None
 sid = None
+redirect = None
 
 # check cookies
 cookies_string = os.environ["HTTP_COOKIE"] if "HTTP_COOKIE" in os.environ else ""
@@ -257,26 +280,34 @@ if "sid" in cookies:
 
 # check query stuff
 action = form.getvalue("action")
+verify = form.getvalue("verify")
 
 # check basic actions (register/signin)
 if action == "signin":
-    username = form["username"].value
-    password = form["password"].value
+    username = form.getfirst("username")
+    password = form.getfirst("password")
     password_hash = hash(password)
 
     # check database for matching username and password
-    result = cur.execute("SELECT username FROM users WHERE username = ? AND password_hash = ?", (username, password_hash)).fetchone()
+    result = cur.execute("SELECT username, verified FROM users WHERE username = ? AND password_hash = ?", (username, password_hash)).fetchone()
 
     if result:
         # it's valid!
-        user = get_user(username)
+        # check they're verified
+        if result["verified"]:
+            user = get_user(username)
 
-        # create a session for them
-        sid = create_session(user)
+            # create a session for them
+            sid = create_session(user)
+        else:
+            page = form.getfirst("page")
+            values["signin_fail"] = True
+            values["signin_error"] = "We need to verify your email address before you can log in! Check your emails for the link to continue."
     else:
         # lol they fail
-        page = form["page"].value # homepage
+        page = form.getfirst("page")
         values["signin_fail"] = True
+        values["signin_error"] = "Incorrect username and/or password :("
 elif action == "register":
     username = form.getvalue("username")
     password = form.getvalue("password")
@@ -319,13 +350,20 @@ elif action == "register":
         # oh shit no errors, sweet
         # register the user
         password_hash = hash(password)
-        cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (username, password_hash, name.strip(), street.strip(),
-                 city.strip(), state.strip(), postcode, email))
+        token = hash(username + password + name + street + city + state + postcode + email + str(time.time()) + str(random.random())) # verification token
 
-        # sign them in
-        user = get_user(username)
-        sid = create_session(user)
+        cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (username, password_hash, name.strip(), street.strip(),
+                 city.strip(), state.strip(), postcode, email, 0, token))
+
+        conn.commit()
+
+        values["register_success"] = True
+        send_verification_email(get_user(username))
+
+        # don't sign them in because we need them to verify email first
+        #user = get_user(username)
+        #sid = create_session(user)
 
     if error:
         # set error stuff
@@ -350,6 +388,24 @@ elif action == "signout":
     user = None
 
     values["signout_success"] = True
+elif verify:
+    # check verification token
+    result = cur.execute("SELECT username FROM users WHERE verified = 0 AND verification_token = ?", (verify,)).fetchone()
+    if result:
+        # yay
+        # set their account to verified, nullify token
+        cur.execute("UPDATE users SET verified = 1, verification_token = '' WHERE username = ?", (result["username"],))
+        conn.commit()
+
+        # sign them in
+        user = get_user(result["username"])
+        sid = create_session(user)
+
+        # redirect
+        redirect = "?page=home"
+    else:
+        # do nothing...
+        pass
 
 # are they logged in? i.e. is sid set
 if sid:
@@ -451,7 +507,10 @@ cookies["sid"] = sid if sid else ""
 values["user"] = user
 
 # print headers
-print "Content-Type: text/html"
+if redirect:
+    print "Location: %s" % redirect
+else:
+    print "Content-Type: text/html"
 
 # cookies
 print cookies.output()
@@ -459,4 +518,5 @@ print cookies.output()
 # end headers
 print ""
 
-print template.format_file("index.html", values)
+if not redirect:
+    print template.format_file("index.html", values)
