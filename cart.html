@@ -1,0 +1,41 @@
+<div class="panel panel-default">
+    <div class="panel-body">
+        <{ if user }>
+        <h3 class="cart-header">
+            Your cart: $<% "%.2f" % cart_total %>
+        </h3>
+        <{ if books }>
+        <ul class="cart-list media-list">
+            <{ for book in books }>
+            <li class="media">
+                <a class="pull-left" href="?page=details&isbn=<% book["isbn"] %>">
+                    <img class="cart-thumbnail media-object"src="<% book["largeimageurl"] %>" alt="">
+                </a>
+                <div class="media-body">
+                    <p class="cart-paragraph">
+                        <a href="?page=details&isbn=<% book["isbn"] %>" class="cart-heading">
+                            <% book["title"] %>
+                        </a>
+                        by <% ", ".join(book["authors"]) %>
+                    </p>
+                    <p class="cart-paragraph">
+                        <span class="cart-price">
+                            $<% "%.2f" % book["price"] %>
+                        </span>
+                    </p>
+                    <p class="cart-paragraph">
+                        Quantity: <% book["quantity"] %>
+                        <a class="btn btn-default" href="?page=cart&remove=<% book["isbn"] %>">Remove from cart</a>
+                    </p>
+                </div>
+            </li>
+            <{ end }>
+        </ul>
+        <{ else }>
+        Your cart is empty! You could remedy this situation by adding some books to it.
+        <{ end }>
+        <{ else }>
+        You can't view your cart until you log in!
+        <{ end }>
+    </div>
+</div>

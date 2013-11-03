@@ -76,6 +76,13 @@ def get_user(username):
     user = cur.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     return user
 
+# cart functions
+def get_cart_total(username):
+    total = 0
+    for result in cur.execute("SELECT price, quantity FROM cart_contents NATURAL JOIN books WHERE username = ?", (username,)):
+        total += result["price"]*result["quantity"]
+    return total
+
 # email functions
 EMAIL_USERNAME = "mekong@caley.com.au"
 EMAIL_PASSWORD = "6de2789b4614f57312d8e70f27f2dea65665d2681bc4e87c0f8d9dffd0f0c415"
@@ -92,7 +99,9 @@ def send_verification_email(user):
     url = "http://cgi.cse.unsw.edu.au/~gric057/mekong/?verify=%s" % user["verification_token"]
 
     msg = """Hi there %s! Click the following link to verify your brand new Mekong account:<br>
-    <a href="%s">%s</a>""" % (user["username"], url, url)
+    <a href="%s">%s</a><br><br>
+    If you didn't create an account with Mekong, then you can safely delete this message.
+    """ % (user["username"], url, url)
 
     send_email(user["email"], "Mekong email verification", msg)
 
@@ -496,9 +505,52 @@ elif page == "details":
     result["authors"] = authors
     values["book"] = result
 elif page == "cart":
-    # yay we get to display the cart woo
-    # if only i knew how to style things properly
-    pass
+    if user:
+        # yay we get to display the cart woo
+        # if only i knew how to style things properly
+
+        # firstly, do we need to add something to the cart?
+        isbn = form.getfirst("isbn")
+        if isbn:
+            # ensure it isn't already in the cart
+            result = cur.execute("SELECT quantity FROM cart_contents WHERE username = ? AND isbn = ?", (username, isbn)).fetchone()
+            if not result:
+                # not in the cart; add new
+                cur.execute("INSERT INTO cart_contents VALUES (?, ?, ?)", (username, isbn, 1))
+            else:
+                # in the cart; increment
+                cur.execute("UPDATE cart_contents SET quantity = ? WHERE username = ? AND isbn = ?", (result["quantity"]+1, username, isbn))
+            conn.commit()
+
+            # redirect
+            redirect = "?page=cart"
+        else:
+            # do we need to remove something from the cart?
+            isbn = form.getfirst("remove")
+            if isbn:
+                cur.execute("DELETE FROM cart_contents WHERE username = ? AND isbn = ?", (username, isbn))
+                conn.commit()
+
+                # redirect
+                redirect = "?page=cart"
+            else:
+
+                # get cart contents
+                results = cur.execute("SELECT * FROM cart_contents NATURAL JOIN books WHERE username = ?", (username,)).fetchall()
+
+                books = []
+                for result in results:
+                    book = dict(result)
+                    authors = []
+                    for author in cur.execute("SELECT name FROM authors WHERE isbn = ?", (book["isbn"],)).fetchall():
+                        authors.append(author["name"])
+                    book["authors"] = authors
+                    books.append(book)
+                values["books"] = books
+
+# cart total
+if user:
+    values["cart_total"] = get_cart_total(username)
 
 # put sid into cookies
 cookies["sid"] = sid if sid else ""

@@ -137,3 +137,31 @@ body {
     font-weight: bold;
     color: #b0171f;
 }
+
+/* cart stuff */
+
+.cart-header {
+    margin: 0;
+}
+
+.cart-list {
+    margin-top: 15px;
+}
+
+.cart-thumbnail {
+    max-width: 100px;
+}
+
+.cart-heading {
+    font-weight: bold;
+    font-size: 12pt;
+}
+
+.cart-paragraph {
+    margin: 0 0 5px 0;
+}
+
+.cart-price {
+    font-weight: bold;
+    color: #b0171f;
+}

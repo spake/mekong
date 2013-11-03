@@ -27,7 +27,9 @@
                         </span>
                     </p>
                     <p class="searchresult-paragraph">
+                        <{ if user }>
                         <a class="btn btn-default" href="?page=cart&isbn=<% book["isbn"] %>">Add to cart</a>
+                        <{ end }>
                     </p>
                 </div>
             </li>
