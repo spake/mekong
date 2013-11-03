@@ -12,7 +12,11 @@
                 <h4 class="details-price">
                     $<% "%.2f" % book["price"] %>
                 </h4>
+                <{ if in_cart }>
+                <a href="?page=cart"><% in_cart %> already in cart</a>
+                <{ else }>
                 <a class="btn btn-default" href="?page=cart&isbn=<% book["isbn"] %>">Add to cart</a>
+                <{ end }>
                 <button class="btn btn-default" onclick="history.go(-1)">Back</button>
                 <p>
                     <% book["productdescription"] %>

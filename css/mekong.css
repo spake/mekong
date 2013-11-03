@@ -165,3 +165,8 @@ body {
     font-weight: bold;
     color: #b0171f;
 }
+
+.quantity {
+    width: 100px !important;
+    display: inline-block;
+}

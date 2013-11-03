@@ -498,12 +498,25 @@ elif page == "details":
     # get id from query
     isbn = form.getfirst("isbn")
 
-    result = dict(cur.execute("SELECT * FROM books WHERE isbn = ?", (isbn,)).fetchone())
-    authors = []
-    for author in cur.execute("SELECT name FROM authors WHERE isbn = ?", (isbn,)).fetchall():
-        authors.append(author["name"])
-    result["authors"] = authors
-    values["book"] = result
+    result = cur.execute("SELECT * FROM books WHERE isbn = ?", (isbn,)).fetchone()
+    if result:
+        result = dict(result)
+
+        authors = []
+        for author in cur.execute("SELECT name FROM authors WHERE isbn = ?", (isbn,)).fetchall():
+            authors.append(author["name"])
+
+        result["authors"] = authors
+        values["book"] = result
+
+        # check if it's in their cart
+        if user:
+            result = cur.execute("SELECT quantity FROM cart_contents WHERE username = ? AND isbn = ?", (username, isbn)).fetchone()
+            if result:
+                values["in_cart"] = result["quantity"]
+    else:
+        # invalid isbn!
+        redirect = "?page=home"
 elif page == "cart":
     if user:
         # yay we get to display the cart woo
@@ -512,15 +525,33 @@ elif page == "cart":
         # firstly, do we need to add something to the cart?
         isbn = form.getfirst("isbn")
         if isbn:
-            # ensure it isn't already in the cart
-            result = cur.execute("SELECT quantity FROM cart_contents WHERE username = ? AND isbn = ?", (username, isbn)).fetchone()
-            if not result:
-                # not in the cart; add new
-                cur.execute("INSERT INTO cart_contents VALUES (?, ?, ?)", (username, isbn, 1))
-            else:
-                # in the cart; increment
-                cur.execute("UPDATE cart_contents SET quantity = ? WHERE username = ? AND isbn = ?", (result["quantity"]+1, username, isbn))
-            conn.commit()
+            # make sure it's a valid isbn...
+            result = cur.execute("SELECT isbn FROM books WHERE isbn = ?", (isbn,)).fetchone()
+            if result:
+                # hold up, is this a quantity thing or an add to cart thing
+
+                quantity = form.getfirst("quantity")
+                if quantity:
+                    try:
+                        quantity = int(quantity)
+                    except ValueError:
+                        pass
+                    else:
+
+                        if quantity >= 1 and quantity <= 100:
+                            # anything outside that range would be a little ridiculous...
+                            cur.execute("UPDATE cart_contents SET quantity = ? WHERE username = ? AND isbn = ?", (quantity, username, isbn))
+                            conn.commit()
+                else:
+                    # ensure it isn't already in the cart
+                    result = cur.execute("SELECT quantity FROM cart_contents WHERE username = ? AND isbn = ?", (username, isbn)).fetchone()
+                    if not result:
+                        # not in the cart; add new
+                        cur.execute("INSERT INTO cart_contents VALUES (?, ?, ?)", (username, isbn, 1))
+                    else:
+                        # in the cart; increment
+                        cur.execute("UPDATE cart_contents SET quantity = ? WHERE username = ? AND isbn = ?", (result["quantity"]+1, username, isbn))
+                    conn.commit()
 
             # redirect
             redirect = "?page=cart"
