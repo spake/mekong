@@ -3,10 +3,10 @@
         <h3 class="search-header">
             <% total if total else "No" %> results found for <i><% query %></i>
         </h3>
+        <{ if results }>
         <h4 class="search-header">
             Showing results <% start %>-<% finish %>
         </h4>
-        <{ if results }>
         <{ include search_pagination.html }>
         <ul class="search-list media-list">
             <{ for book in results }>

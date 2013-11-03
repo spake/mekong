@@ -161,6 +161,32 @@ if not db_exists:
         )
         """)
 
+    cur.execute("""
+        CREATE TABLE cart_contents (
+            username text,
+            isbn text,
+            quantity integer
+        )
+        """)
+
+    cur.execute("""
+        CREATE TABLE orders (
+            order_id integer primary key autoincrement,
+            username text,
+            time ???,
+            cc text,
+            expiry text
+        )
+        """)
+
+    cur.execute("""
+        CREATE TABLE order_contents (
+            order_id integer,
+            isbn text,
+            quantity integer
+        )
+        """)
+
     # parse books.json
     f = open("books.json")
     data = json.loads(f.read())
@@ -413,6 +439,10 @@ elif page == "details":
         authors.append(author["name"])
     result["authors"] = authors
     values["book"] = result
+elif page == "cart":
+    # yay we get to display the cart woo
+    # if only i knew how to style things properly
+    pass
 
 # put sid into cookies
 cookies["sid"] = sid if sid else ""
