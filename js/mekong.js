@@ -19,3 +19,9 @@ function displayRegisterFailed(problem) {
     $("#registerAlert").show();
     $("#registerModal").modal();
 }
+
+function displayCheckoutFailed(problem) {
+    $("#checkoutAlert").html(problem);
+    $("#checkoutAlert").show();
+    $("#checkoutModal").modal();
+}

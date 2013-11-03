@@ -88,6 +88,10 @@
             </div>
             <{ end }>
 
+            <script src="js/jquery.js"></script>
+            <script src="js/bootstrap.min.js"></script>
+            <script src="js/mekong.js"></script>
+
             <{ if page == "home" }>
             <{ include home.html }>
             <{ elif page == "search" }>
@@ -96,13 +100,11 @@
             <{ include details.html }>
             <{ elif page == "cart" }>
             <{ include cart.html }>
+            <{ elif page == "checkout_success" }>
+            <{ include checkout_success.html }>
             <{ else }>
             <{ include 404.html }>
             <{ end }>
-
-            <script src="js/jquery.js"></script>
-            <script src="js/bootstrap.min.js"></script>
-            <script src="js/mekong.js"></script>
 
             <{ include signin.html }>
             <{ include register.html }>

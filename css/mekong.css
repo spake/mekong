@@ -45,7 +45,7 @@ body {
     padding-top: 15%;
 }
 
-.modal-signin-title, .modal-register-title {
+.modal-signin-title, .modal-register-title, .modal-checkout-title {
     text-align: center;
     font-size: 30pt;
 }
@@ -60,6 +60,12 @@ body {
     max-width: 330px;
     padding: 15px;
     margin: 0 auto;
+}
+
+.form-checkout {
+    padding: 15px;
+    margin: 0 auto;
+    width: 500px;
 }
 
 .form-signin .form-control {
@@ -79,11 +85,19 @@ body {
     box-sizing: border-box;
 }
 
-#signInAlert, #registerAlert {
+.form-checkout .form-control {
+    position: relative;
+    font-size: 12px;
+    height: auto;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+}
+
+#signInAlert, #registerAlert, #checkoutAlert {
     display: none;
 }
 
-.form-signin-bottom, .form-register-bottom {
+.form-signin-bottom, .form-register-bottom, .form-checkout-bottom {
     text-align: center;
 }
 

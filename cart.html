@@ -36,7 +36,7 @@
             <{ end }>
         </ul>
         <hr>
-        <button class="btn btn-default">Checkout</button>
+        <a class="btn btn-success" data-toggle="modal" href="#checkoutModal">Checkout</a>
         <{ else }>
         Your cart is empty! You could remedy this situation by adding some books to it.
         <{ end }>
@@ -45,3 +45,5 @@
         <{ end }>
     </div>
 </div>
+
+<{ include checkout.html }>

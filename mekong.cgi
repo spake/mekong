@@ -127,6 +127,10 @@ def parse_int(int_str):
 def parse_price(price_str):
     return float(price_str[1:])
 
+# string function thing
+def in_range(s, minimum, maximum):
+    return len(s) >= minimum and len(s) <= maximum
+
 # create db if it doesn't already exist
 db_exists = os.path.exists(DATABASE_FILENAME)
 conn = sqlite3.connect(DATABASE_FILENAME)
@@ -206,15 +210,9 @@ if not db_exists:
             username text,
             timestamp integer,
             cc text,
-            expiry text
-        )
-        """)
-
-    cur.execute("""
-        CREATE TABLE order_contents (
-            order_id integer,
-            isbn text,
-            quantity integer
+            expiry text,
+            total real,
+            description text
         )
         """)
 
@@ -337,6 +335,8 @@ elif action == "register":
         error = "Please enter a username."
     elif not re.match(r"^[A-Za-z0-9_\.]+$", username):
         error = "Make sure that your username only contains alphanumeric characters, _ and ."
+    elif not in_range(username, 3, 16):
+        error = "Please choose a username between 3 and 16 characters in length."
     elif get_user(username):
         error = "That username is already taken, try another!"
     elif password != password2:
@@ -380,15 +380,15 @@ elif action == "register":
         values["register_error"] = error
 
         values["register_data"] = {
-            "username": username,
-            "password": password,
-            "password2": password2,
-            "name": name,
-            "street": street,
-            "city": city,
-            "state": state,
-            "postcode": postcode,
-            "email": email
+            "username": username or "",
+            "password": password or "",
+            "password2": password2 or "",
+            "name": name or "",
+            "street": street or "",
+            "city": city or "",
+            "state": state or "",
+            "postcode": postcode or "",
+            "email": email or ""
         }
 elif action == "signout":
     # remove session
@@ -522,6 +522,55 @@ elif page == "cart":
         # yay we get to display the cart woo
         # if only i knew how to style things properly
 
+        # checkout stuff
+        # are we checking out?
+        if action == "checkout":
+            # yep
+            # get cc, expiry
+            creditcard = form.getfirst("creditcard")
+            expirymonth = form.getfirst("expirymonth")
+            expiryyear = form.getfirst("expiryyear")
+
+            error = ""
+
+            if not creditcard or not re.match(r"^\d{16}$", creditcard):
+                error = "Please enter a <a target='_blank' href='http://www.getcreditcardnumbers.com/'>valid credit card number</a>."
+            elif not expirymonth or not re.match(r"^\d{1,2}$", expirymonth) or not (int(expirymonth) >= 1 and int(expirymonth) <= 12):
+                error = "Please enter a valid expiry month (between 01 and 12)."
+            elif not expiryyear or not re.match(r"^\d{2}$", expiryyear) or not (int(expiryyear) >= 13 and int(expiryyear) <= 50):
+                error = "Please enter a valid expiry year (two digits, between 13 and 50)."
+            else:
+                # correctamundo
+                expirystr = str(int(expirymonth)).zfill(2) + "/" + expiryyear
+
+                total = get_cart_total(username)
+
+                lines = []
+                # get cart contents
+                results = cur.execute("SELECT * FROM cart_contents NATURAL JOIN books WHERE username = ?", (username,)).fetchall()
+
+                for result in results:
+                    lines.append("%s (ISBN: %s) &times; %d ($%.2f each)" % (result["title"], result["isbn"], result["quantity"], result["price"]))
+                description = "<br>".join(lines)
+
+                result = cur.execute("INSERT INTO orders (username, timestamp, cc, expiry, total, description) VALUES (?, ?, ?, ?, ?, ?)",
+                        (username, int(time.time()), creditcard, expirystr, total, description))
+                conn.commit()
+
+                result_id = cur.lastrowid
+
+                redirect = "?page=checkout_success&id=%d" % result_id
+
+            if error:
+                values["checkout_fail"] = True
+                values["checkout_error"] = error
+
+                values["checkout_data"] = {
+                    "creditcard": creditcard or "",
+                    "expirymonth": expirymonth or "",
+                    "expiryyear": expiryyear or ""
+                }
+
         # firstly, do we need to add something to the cart?
         isbn = form.getfirst("isbn")
         if isbn:
@@ -578,6 +627,13 @@ elif page == "cart":
                     book["authors"] = authors
                     books.append(book)
                 values["books"] = books
+elif page == "checkout_success":
+    # if it's a valid id, add description
+    id = form.getfirst("id")
+    if id:
+        result = cur.execute("SELECT description FROM orders WHERE order_id = ?", (id,)).fetchone()
+        if result:
+            values["description"] = result["description"]
 
 # cart total
 if user:
