@@ -132,3 +132,8 @@ body {
 .details-description {
     float: right;
 }
+
+.details-price {
+    font-weight: bold;
+    color: #b0171f;
+}
