@@ -98,12 +98,23 @@ def send_email(recipient, subject, content):
 def send_verification_email(user):
     url = "http://cgi.cse.unsw.edu.au/~gric057/mekong/?verify=%s" % user["verification_token"]
 
-    msg = """Hi there %s! Click the following link to verify your brand new Mekong account:<br>
+    msg = """Hi there %s! Click the following link to verify your brand new mekong account:<br>
     <a href="%s">%s</a><br><br>
-    If you didn't create an account with Mekong, then you can safely delete this message.
+    If you didn't create an account with mekong, then you can safely delete this message.
     """ % (user["username"], url, url)
 
     send_email(user["email"], "Mekong email verification", msg)
+
+def send_password_reset(user):
+    url = "http://cgi.cse.unsw.edu.au/~gric057/mekong/?forgot=%s" % user["reset_token"]
+
+    msg = """Hi there %s! A password reset for mekong was requested for your username and email address.<br>
+    Click the following link to continue and reset your password:
+    <a href="%s">%s</a><br><br>
+    If you didn't request this, then you can safely delete this message.
+    """ % (user["username"], url, url)
+
+    send_email(user["email"], "Mekong password reset", msg)
 
 # book parsing functions
 def parse_date(date_str):
@@ -185,7 +196,8 @@ if not db_exists:
             postcode text,
             email text,
             verified integer,
-            verification_token text
+            verification_token text,
+            reset_token text
         )
         """)
 
@@ -288,6 +300,7 @@ if "sid" in cookies:
 # check query stuff
 action = form.getvalue("action")
 verify = form.getvalue("verify")
+forgot = form.getvalue("forgot")
 
 # check basic actions (register/signin)
 if action == "signin":
@@ -361,13 +374,14 @@ elif action == "register":
         password_hash = hash(password)
         token = hash(username + password + name + street + city + state + postcode + email + str(time.time()) + str(random.random())) # verification token
 
-        cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (username, password_hash, name.strip(), street.strip(),
-                 city.strip(), state.strip(), postcode, email, 0, token))
+                 city.strip(), state.strip(), postcode, email, 0, token, ""))
 
         conn.commit()
 
         values["register_success"] = True
+        values["email"] = email
         send_verification_email(get_user(username))
 
         # don't sign them in because we need them to verify email first
@@ -415,6 +429,26 @@ elif verify:
     else:
         # do nothing...
         pass
+elif forgot:
+    # check reset token
+    result = cur.execute("SELECT username FROM users WHERE reset_token = ?", (forgot,)).fetchone()
+    if result:
+        username = result["username"]
+        # generate random password and nullify token
+        alphabet = "abcdefghijklmnopqrstuvwxyz"
+        alphabet += alphabet.upper()
+        alphabet += "0123456789"
+        password = "".join([random.choice(alphabet) for i in xrange(10)])
+        password_hash = hash(password)
+
+        cur.execute("UPDATE users SET password_hash = ?, reset_token = ? WHERE username = ?", (password_hash, "", username))
+        conn.commit()
+
+        values["new_password"] = password
+
+        page = "forgot"
+        values["page"] = "forgot"
+        values["forgot"] = forgot
 
 # are they logged in? i.e. is sid set
 if sid:
@@ -593,7 +627,7 @@ elif page == "cart":
                         pass
                     else:
 
-                        if quantity >= 1 and quantity <= 100:
+                        if quantity >= 1 and quantity <= 200:
                             # anything outside that range would be a little ridiculous...
                             cur.execute("UPDATE cart_contents SET quantity = ? WHERE username = ? AND isbn = ?", (quantity, username, isbn))
                             conn.commit()
@@ -676,6 +710,35 @@ elif page == "account":
         # add past orders
         orders = map(dict, cur.execute("SELECT * FROM orders WHERE username = ? ORDER BY timestamp DESC", (username,)).fetchall())
         values["orders"] = orders
+elif page == "forgot":
+    if user:
+        redirect = "?page=account"
+    elif forgot:
+        # token, do nothing
+        pass
+    else:
+        username = form.getfirst("username")
+        email = form.getfirst("email")
+
+        if username and email:
+            # check db for match
+            result = cur.execute("SELECT * FROM users WHERE username = ? AND email = ?", (username, email)).fetchone()
+            if result:
+                # send the email!
+                user = get_user(username)
+                token = hash(user["username"] + user["password_hash"] + user["name"] + user["street"] + user["city"] + user["state"] + user["postcode"] + user["email"] + str(time.time()) + str(random.random())) # password reset token
+
+                cur.execute("UPDATE users SET reset_token = ? WHERE username = ?", (token, username))
+                conn.commit()
+                user = get_user(username) # reload
+
+                send_password_reset(user)
+
+                user = None
+                values["success"] = True
+            else:
+                values["error"] = True
+
 
 # cart total
 if user:

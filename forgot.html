@@ -1,0 +1,27 @@
+<div class="panel panel-default">
+    <div class="panel-body">
+        <h1>Reset password</h1>
+        <{ if new_password }>
+        Your new password is: <b><% new_password %></b><br>
+        Please write it down or something, and <a href="?page=account">change it</a> to something more memorable ASAP!
+        <{ else }>
+
+        <{ if error }>
+        <div class="alert alert-danger">No matching username and email address was found :(</div>
+        <{ elif success }>
+        <div class="alert alert-success">Message sent! Please check your inbox for the password reset link.</div>
+        <{ end }>
+        Punch in your username and email address and we'll email you a brand new password!
+        <form method="POST">
+            <p>
+                Username
+                <input type="text" class="form-control" name="username">
+                Email address
+                <input type="email" class="form-control" name="email">
+            </p>
+            <button class="btn btn-default" type="submit">Submit</button>
+        </form>
+
+        <{ end }>
+    </div>
+</div>

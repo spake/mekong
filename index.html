@@ -82,7 +82,7 @@
 
             <{ if register_success }>
             <div class="alert alert-success">
-                Your registration was successful. Before you can sign in, however, we need to verify your email address. Check your emails now for the link to continue!
+                Your registration was successful. Before you can sign in, however, we need to verify your email address. Check your inbox for <% email %> now for the link to continue!
             </div>
             <{ end }>
 
@@ -108,6 +108,8 @@
             <{ include checkout_success.html }>
             <{ elif page == "account" }>
             <{ include account.html }>
+            <{ elif page == "forgot" or forgot }>
+            <{ include forgot.html }>
             <{ else }>
             <{ include 404.html }>
             <{ end }>
